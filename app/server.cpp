@@ -3,7 +3,7 @@
 #include <random>
 
 #include "common.h"
-#include "ext/stb_image_write.h"
+#include "stb_image_write.h"
 
 int main(int argc, char **argv) {
   Semaphore server_sem(SEMNAME_SERVER, 0);

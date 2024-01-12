@@ -1,17 +1,19 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 
-project(sem_shm LANGUAGES CXX
-                VERSION 0.1
-                DESCRIPTION "Example of using semaphores to synchronize access to shared memory")
+project(shmemaphore LANGUAGES CXX
+                    VERSION 0.1
+                    DESCRIPTION "Example of using semaphores to synchronize access to shared memory")
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_subdirectory(src/ext)
+add_subdirectory(ext)
 
-add_executable(server src/server.cpp)
-add_executable(client src/client.cpp)
+add_executable(server app/server.cpp)
+target_include_directories(server PUBLIC src ext)
+add_executable(client app/client.cpp)
+target_include_directories(client PUBLIC src ext)
 
 target_link_libraries(server stb_image)
 target_link_libraries(client stb_image)
 
-file(COPY src/img DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY app/img DESTINATION ${CMAKE_BINARY_DIR})
