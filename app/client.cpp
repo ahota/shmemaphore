@@ -11,16 +11,12 @@ int main(int argc, char **argv) {
     SharedMemorySegment shmNumBytes(SHMNAME_HEADER, sizeof(uint64_t));
 
     uint64_t dataSize = 0;
-    shmNumBytes.map(sizeof(uint64_t));
-    dataSize = *((uint64_t *)shmNumBytes.getData());
-    shmNumBytes.unmap();
+    dataSize = *((uint64_t *)shmNumBytes.getData(sizeof(uint64_t)));
 
     // open the data segment
     SharedMemorySegment shmData(SHMNAME_DATA, dataSize);
 
-    shmData.map();
     std::string command((const char *)shmData.getData());
-    shmData.unmap();
     std::cout << "Server wants " << command << std::endl;
     command = "img/" + command + ".jpg";
 
@@ -32,14 +28,9 @@ int main(int argc, char **argv) {
         imageBytes, (uint64_t)width, (uint64_t)height, (uint64_t)nchannels};
     std::cout << "I'm sending " << imageBytes << " bytes" << std::endl;
 
-    shmNumBytes.map();
     shmNumBytes.setData((void *)numBytesDims.data(),
                         numBytesDims.size() * sizeof(uint64_t));
-    shmNumBytes.unmap();
-
-    shmData.map(imageBytes);
     shmData.setData(image, imageBytes);
-    shmData.unmap();
 
     stbi_image_free(image);
 

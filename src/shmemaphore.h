@@ -33,7 +33,7 @@ class SharedMemorySegment {
   void map(const off_t length = 0);
   void unmap();
   void setData(const void *data, const size_t length);
-  const void *getData();
+  const void *getData(const size_t dataSize = 0);
 
  private:
   std::string name;
@@ -152,7 +152,13 @@ void SharedMemorySegment::unmap() {
 }
 
 void SharedMemorySegment::setData(const void *data, const size_t length) {
+  map(length);
   std::memcpy(this->data, data, length);
+  unmap();
 }
 
-const void *SharedMemorySegment::getData() { return data; }
+const void *SharedMemorySegment::getData(const size_t dataSize) { 
+  map(dataSize);
+  return data;
+  unmap();
+}

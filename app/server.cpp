@@ -23,34 +23,27 @@ int main(int argc, char **argv) {
 
     // describes the size of the data segment
     SharedMemorySegment shmNumBytes(SHMNAME_HEADER, sizeof(uint64_t), true);
-    shmNumBytes.map();
     shmNumBytes.setData(&dataSize, sizeof(dataSize));
-    shmNumBytes.unmap();
 
     // create the data segment and pass the command
     SharedMemorySegment shmData(SHMNAME_DATA, dataSize, true);
-    shmData.map();
     shmData.setData(command.c_str(), dataSize);
-    shmData.unmap();
 
     // increment the semaphore so the client process can proceed
     server_sem.post();
     client_sem.wait();
 
-    shmNumBytes.map(4 * sizeof(uint64_t));
+    size_t bytes = 4 * sizeof(uint64_t);
     uint64_t imageBytes[4];
-    std::memcpy(imageBytes, shmNumBytes.getData(), 4 * sizeof(uint64_t));
-    shmNumBytes.unmap();
+    std::memcpy(imageBytes, shmNumBytes.getData(bytes), bytes);
 
     std::cout << "I'm receiving " << imageBytes[0] << " bytes, "
               << imageBytes[1] << "x" << imageBytes[2] << std::endl;
 
-    shmData.map(imageBytes[0]);
-    unsigned char *image = (unsigned char *)shmData.getData();
+    unsigned char *image = (unsigned char *)shmData.getData(imageBytes[0]);
     std::string filename = command + ".jpg";
     stbi_write_jpg(filename.c_str(), imageBytes[1], imageBytes[2],
                    imageBytes[3], image, 90);
-    shmData.unmap();
   }
 
   return 0;
