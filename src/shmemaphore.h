@@ -45,58 +45,63 @@ class SharedMemorySegment {
 Semaphore::Semaphore(const std::string &_name, int _value) : name(_name) {
   sem = sem_open(name.c_str(), O_CREAT, 0777, _value);
   if (sem == SEM_FAILED) {
-    perror("sem_open(3) error");
-    throw std::runtime_error("Semaphore() Failed to create semaphore");
+    std::string what("Failed to create semaphore [sem_open(3)]: ");
+    what += std::strerror(errno);
+    throw std::runtime_error(what);
   }
 }
 
 Semaphore::~Semaphore() noexcept(false) {
   int err = sem_close(sem);
   if (err == -1) {
-    perror("sem_close(3) error");
-    throw std::runtime_error("~Semaphore() Failed to close semaphore");
+    std::string what("Failed to close semaphore [sem_close(3)]: ");
+    what += std::strerror(errno);
+    throw std::runtime_error(what);
   }
   err = sem_unlink(name.c_str());
   if (err == -1 && errno != ENOENT) {
-    perror("sem_unlink(3) error");
-    throw std::runtime_error("~Semaphore() Failed to unlink semaphore");
+    std::string what("Failed to unlink semaphore [sem_unlink(3)]: ");
+    what += std::strerror(errno);
+    throw std::runtime_error(what);
   }
 }
 
 void Semaphore::post() {
   int err = sem_post(sem);
   if (err == -1) {
-    perror("sem_post(3) error");
-    throw std::runtime_error("post() Failed to increment semaphore");
+    std::string what("Failed to increment semaphore [sem_post(3)]: ");
+    what += std::strerror(errno);
+    throw std::runtime_error(what);
   }
 }
 
 void Semaphore::wait() {
   int err = sem_wait(sem);
   if (err == -1) {
-    perror("sem_wait(3) error");
-    throw std::runtime_error("wait() Failed to decrement semaphore");
+    std::string what("Failed to decrement semaphore [sem_wait(3)]: ");
+    what += std::strerror(errno);
+    throw std::runtime_error(what);
   }
 }
 
 SharedMemorySegment::SharedMemorySegment(const std::string &_name, size_t _size,
                                          bool create)
     : name(_name), size(_size) {
-  if (create) shm_unlink(name.c_str());  // clean up in case a segment persisted
+  if (create) shm_unlink(name.c_str());  // clean up in case a persisted
 
   fd = shm_open(name.c_str(), O_CREAT | O_RDWR, 0777);
   if (fd == -1) {
-    perror("shm_open error");
-    throw std::runtime_error(
-        "SharedMemorySegment() Failed to open shared memory segment");
+    std::string what("Failed to open shared memory [shm_open(3)]: ");
+    what += std::strerror(errno);
+    throw std::runtime_error(what);
   }
 
   if (create) {
     int err = ftruncate(fd, size);
     if (err == -1) {
-      perror("ftruncate(2) error");
-      throw std::runtime_error(
-          "SharedMemorySegment() Failed to resize shared memory segment");
+      std::string what("Failed to resize shared memory [ftruncate(2)]: ");
+      what += std::strerror(errno);
+      throw std::runtime_error(what);
     }
   }
 }
@@ -104,16 +109,16 @@ SharedMemorySegment::SharedMemorySegment(const std::string &_name, size_t _size,
 SharedMemorySegment::~SharedMemorySegment() noexcept(false) {
   int err = close(fd);
   if (err == -1) {
-    perror("close(2) error");
-    throw std::runtime_error(
-        "~SharedMemorySegment() Failed to close shared memory file descriptor");
+    std::string what("Failed to close shared memory [close(2)]: ");
+    what += std::strerror(errno);
+    throw std::runtime_error(what);
   }
 
   err = shm_unlink(name.c_str());
   if (err == -1 && errno != ENOENT) {
-    perror("shm_unlink(3) error");
-    throw std::runtime_error(
-        "~SharedMemorySegment() Failed to unlink shared memory segment");
+    std::string what("Failed to unlink shared memory [shm_unlink(3)]: ");
+    what += std::strerror(errno);
+    throw std::runtime_error(what);
   }
 }
 
@@ -124,22 +129,25 @@ void SharedMemorySegment::map(const off_t length) {
     // macOS only allows one ftruncate per lifetime
     int err = ftruncate(fd, length);
     if (err == -1) {
-      perror("ftruncate(2) error");
-      throw std::runtime_error("map() Failed to resize shared memory segment");
+      std::string what("Failed to resize shared memory [ftruncate(2)]: ");
+      what += std::strerror(errno);
+      throw std::runtime_error(what);
     }
   }
   data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if (data == MAP_FAILED) {
-    perror("mmap(2) error");
-    throw std::runtime_error("map() Failed to map shared memory segment");
+    std::string what("Failed to map shared memory [mmap(2)]: ");
+    what += std::strerror(errno);
+    throw std::runtime_error(what);
   }
 }
 
 void SharedMemorySegment::unmap() {
   int err = munmap(data, size);
   if (err == -1) {
-    perror("munmap(2) error");
-    throw std::runtime_error("unmap() Failed to unmap shared memory segment");
+    std::string what("Failed to unmap shared memory [munmap(2)]: ");
+    what += std::strerror(errno);
+    throw std::runtime_error(what);
   }
 }
 
