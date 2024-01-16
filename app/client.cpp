@@ -1,4 +1,4 @@
-#include "shmemaphore.h"
+#include "common.h"
 #include "stb_image.h"
 
 int main(int argc, char **argv) {

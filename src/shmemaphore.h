@@ -11,11 +11,6 @@
 #include <string>
 #include <vector>
 
-#define SEMNAME_SERVER "/SHMExample_Server_SEM"
-#define SEMNAME_CLIENT "/SHMExample_Client_SEM"
-#define SHMNAME_HEADER "/Header_SHM"
-#define SHMNAME_DATA "/Data_SHM"
-
 class Semaphore {
  public:
   Semaphore(const std::string &_name, int _value = 0);
@@ -125,7 +120,7 @@ SharedMemorySegment::~SharedMemorySegment() noexcept(false) {
 void SharedMemorySegment::map(const off_t length) {
   if (length >= size) {  // don't shrink
     size = length;
-    // NOTE: this will NOT work on macOS and possibly BSD
+    // NOTE: this will NOT work on macOS
     // macOS only allows one ftruncate per lifetime
     int err = ftruncate(fd, length);
     if (err == -1) {

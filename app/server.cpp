@@ -2,7 +2,7 @@
 
 #include <random>
 
-#include "shmemaphore.h"
+#include "common.h"
 #include "stb_image_write.h"
 
 int main(int argc, char **argv) {
