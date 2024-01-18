@@ -1,3 +1,6 @@
+#include <iostream>
+#include <vector>
+
 #include "shmemaphore.h"
 
 #define SEMNAME_SERVER "/SHMExample_Server_SEM"
