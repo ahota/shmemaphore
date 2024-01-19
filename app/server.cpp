@@ -6,8 +6,7 @@
 #include "stb_image_write.h"
 
 int main(int argc, char **argv) {
-  Semaphore server_sem(SEMNAME_SERVER, 0);
-  Semaphore client_sem(SEMNAME_CLIENT, 0);
+  Shmemaphore shma4("ibis", true);
 
   // command to send to client (loads an image)
   std::vector<std::string> commands = {"apple", "ball", "car", "dog"};
@@ -18,29 +17,23 @@ int main(int argc, char **argv) {
     std::string command = commands[rng(gen)];
     std::cout << "I want " << command << std::endl;
 
-    // payload for the NumBytes shared memory segment
     uint64_t dataSize = command.size();
+    shma4.setHeader(&dataSize, sizeof(dataSize));
+    shma4.setData(command.c_str(), dataSize);
 
-    // describes the size of the data segment
-    SharedMemorySegment shmNumBytes(SHMNAME_HEADER, sizeof(uint64_t), true);
-    shmNumBytes.setData(&dataSize, sizeof(dataSize));
-
-    // create the data segment and pass the command
-    SharedMemorySegment shmData(SHMNAME_DATA, dataSize, true);
-    shmData.setData(command.c_str(), dataSize);
-
-    // increment the semaphore so the client process can proceed
-    server_sem.post();
-    client_sem.wait();
+    shma4.requestComplete();
+    shma4.waitForResponse();
 
     size_t bytes = 4 * sizeof(uint64_t);
     uint64_t imageBytes[4];
-    std::memcpy(imageBytes, shmNumBytes.getData(bytes), bytes);
+    std::memcpy(imageBytes, shma4.getHeader(bytes), bytes);
 
     std::cout << "I'm receiving " << imageBytes[0] << " bytes, "
               << imageBytes[1] << "x" << imageBytes[2] << std::endl;
 
-    unsigned char *image = (unsigned char *)shmData.getData(imageBytes[0]);
+    // the data is already jpeg encoded binary data, so we can directly dump it
+    // to disk
+    unsigned char *image = (unsigned char *)shma4.getData(imageBytes[0]);
     std::string filename = command + ".jpg";
     stbi_write_jpg(filename.c_str(), imageBytes[1], imageBytes[2],
                    imageBytes[3], image, 90);

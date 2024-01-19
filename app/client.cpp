@@ -2,39 +2,36 @@
 #include "stb_image.h"
 
 int main(int argc, char **argv) {
-  Semaphore server_sem(SEMNAME_SERVER, 0);
-  Semaphore client_sem(SEMNAME_CLIENT, 0);
+  Shmemaphore shma4("ibis");
 
   for (int i = 0; i < 10; i++) {
-    server_sem.wait();
-
-    SharedMemorySegment shmNumBytes(SHMNAME_HEADER, sizeof(uint64_t));
+    shma4.waitForRequest();
 
     uint64_t dataSize = 0;
-    dataSize = *((uint64_t *)shmNumBytes.getData(sizeof(uint64_t)));
+    dataSize = *((uint64_t *)shma4.getHeader(sizeof(uint64_t)));
 
-    // open the data segment
-    SharedMemorySegment shmData(SHMNAME_DATA, dataSize);
+    // there is no guaranteed \0 at the end of the data, so we need to specify
+    // the size to the string ctor
+    const char *rawData = (const char *)shma4.getData(dataSize);
+    std::string command(rawData, dataSize);
 
-    std::string command((const char *)shmData.getData());
     std::cout << "Server wants " << command << std::endl;
-    command = "img/" + command + ".jpg";
+    std::string fname = "img/" + command + ".jpg";
 
-    int width, height, nchannels;
-    unsigned char *image =
-        stbi_load(command.c_str(), &width, &height, &nchannels, 0);
-    size_t imageBytes = width * height * nchannels * sizeof(unsigned char);
-    std::vector<uint64_t> numBytesDims = {
-        imageBytes, (uint64_t)width, (uint64_t)height, (uint64_t)nchannels};
+    int w, h, c;
+    unsigned char *image = stbi_load(fname.c_str(), &w, &h, &c, 0);
+    size_t imageBytes = w * h * c * sizeof(unsigned char);
+    std::vector<uint64_t> imageDims = {imageBytes, (uint64_t)w, (uint64_t)h,
+                                       (uint64_t)c};
     std::cout << "I'm sending " << imageBytes << " bytes" << std::endl;
 
-    shmNumBytes.setData((void *)numBytesDims.data(),
-                        numBytesDims.size() * sizeof(uint64_t));
-    shmData.setData(image, imageBytes);
+    shma4.setHeader((void *)imageDims.data(),
+                    imageDims.size() * sizeof(uint64_t));
+    shma4.setData(image, imageBytes);
 
     stbi_image_free(image);
 
-    client_sem.post();
+    shma4.responseComplete();
   }
 
   return 0;
