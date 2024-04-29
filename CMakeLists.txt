@@ -6,14 +6,21 @@ project(shmemaphore LANGUAGES CXX
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_subdirectory(ext)
+option(BUILD_APP "Build test applications" OFF)
 
-add_executable(server app/server.cpp)
-target_include_directories(server PUBLIC src ext)
-add_executable(client app/client.cpp)
-target_include_directories(client PUBLIC src ext)
+if(BUILD_APP)
+  add_subdirectory(ext)
 
-target_link_libraries(server stb_image)
-target_link_libraries(client stb_image)
+  add_executable(server app/server.cpp)
+  target_include_directories(server PUBLIC src ext)
+  add_executable(client app/client.cpp)
+  target_include_directories(client PUBLIC src ext)
 
-file(COPY app/img DESTINATION ${CMAKE_BINARY_DIR})
+  target_link_libraries(server stb_image)
+  target_link_libraries(client stb_image)
+
+  file(COPY app/img DESTINATION ${CMAKE_BINARY_DIR})
+endif()
+
+add_library(shm4 SHARED src/shmemaphore.h)
+set_target_properties(shm4 PROPERTIES LINKER_LANGUAGE CXX)
