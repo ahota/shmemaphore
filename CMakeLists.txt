@@ -9,6 +9,8 @@ set(CMAKE_CXX_STANDARD 14)
 option(BUILD_APP "Build test applications" OFF)
 
 if(BUILD_APP)
+  set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+  find_package(Threads REQUIRED)
   add_subdirectory(ext)
 
   add_executable(server app/server.cpp)
@@ -16,8 +18,8 @@ if(BUILD_APP)
   add_executable(client app/client.cpp)
   target_include_directories(client PUBLIC src ext)
 
-  target_link_libraries(server stb_image)
-  target_link_libraries(client stb_image)
+  target_link_libraries(server stb_image rt Threads::Threads)
+  target_link_libraries(client stb_image rt Threads::Threads)
 
   file(COPY app/img DESTINATION ${CMAKE_BINARY_DIR})
 endif()
