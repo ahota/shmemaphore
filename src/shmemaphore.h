@@ -25,6 +25,8 @@ class Shmemaphore {
   void requestComplete();
   void responseComplete();
 
+  void sendString(const std::string &message);
+  std::string recvString();
  private:
   std::string suffix;
   std::string nameSem;
@@ -63,3 +65,17 @@ void Shmemaphore::waitForResponse() { responseSem.wait(); }
 void Shmemaphore::requestComplete() { requestSem.post(); }
 void Shmemaphore::waitForRequest() { requestSem.wait(); }
 void Shmemaphore::responseComplete() { responseSem.post(); }
+
+void Shmemaphore::sendString(const std::string &message) {
+  uint64_t messageSize = message.size();
+  setHeader(&messageSize, sizeof(messageSize));
+  setData(message.c_str(), messageSize);
+}
+
+std::string Shmemaphore::recvString() {
+  uint64_t dataSize;
+  dataSize = *(uint64_t *)getHeader(sizeof(dataSize));
+  const char *raw = (char *)getData(dataSize);
+  std::string message(raw, dataSize);
+  return message;
+}
