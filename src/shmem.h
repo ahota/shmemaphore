@@ -7,6 +7,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <string>
+#include <thread>
 
 class SharedMemorySegment {
  public:
@@ -29,21 +30,31 @@ class SharedMemorySegment {
 SharedMemorySegment::SharedMemorySegment(const std::string &_name, size_t _size,
                                          bool create)
     : name(_name), size(_size) {
-  if (create) shm_unlink(name.c_str());  // clean up in case a persisted
-
-  fd = shm_open(name.c_str(), O_CREAT | O_RDWR, 0777);
-  if (fd == -1) {
-    std::string what("Failed to open shared memory [shm_open(3)]: ");
-    what += std::strerror(errno);
-    throw std::runtime_error(what);
-  }
-
   if (create) {
+    // clean up in case an old block persisted
+    shm_unlink(name.c_str());
+
+    fd = shm_open(name.c_str(), O_CREAT | O_RDWR, 0777);
+    if (fd == -1) {
+      std::string what("Failed to open shared memory [shm_open(3)]: ");
+      what += std::strerror(errno);
+      throw std::runtime_error(what);
+    }
+
     int err = ftruncate(fd, size);
     if (err == -1) {
       std::string what("Failed to resize shared memory [ftruncate(2)]: ");
       what += std::strerror(errno);
       throw std::runtime_error(what);
+    }
+  } else {
+    int counter = 0;
+    // poll until this block becomes available by the creator
+    while((fd = shm_open(name.c_str(), O_RDWR, 0777)) < 0) {
+      using namespace std::chrono_literals;
+      std::this_thread::sleep_for(100ms);
+      if (counter++ % 10 == 0)
+        std::cerr << "Waiting for shared mem '" << name << "'..." << std::endl;
     }
   }
 }
