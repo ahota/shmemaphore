@@ -31,6 +31,7 @@ class Shmemaphore {
   std::string suffix;
   std::string nameSem;
   std::string nameSeg;
+  bool owner;
 
   Semaphore requestSem;
   Semaphore responseSem;
@@ -39,8 +40,9 @@ class Shmemaphore {
   SharedMemorySegment dataSeg;
 };
 
-Shmemaphore::Shmemaphore(const std::string &name, bool owner)
-    : suffix(copyAndReplace(name, '/', '_')),
+Shmemaphore::Shmemaphore(const std::string &name, bool _owner)
+    : owner(_owner),
+      suffix(copyAndReplace(name, '/', '_')),
       nameSem(std::string("/SEM_") + suffix),
       nameSeg(std::string("/SEG_") + suffix),
       requestSem(nameSem + "_REQ", 0),
@@ -66,13 +68,25 @@ void Shmemaphore::requestComplete() { requestSem.post(); }
 void Shmemaphore::waitForRequest() { requestSem.wait(); }
 void Shmemaphore::responseComplete() { responseSem.post(); }
 
-void Shmemaphore::sendString(const std::string &message) {
+void Shmemaphore::sendString(const std::string &message)
+{
   uint64_t messageSize = message.size();
   setHeader(&messageSize, sizeof(messageSize));
   setData(message.c_str(), messageSize);
+
+  if (owner)
+    requestComplete();
+  else
+    responseComplete();
 }
 
-std::string Shmemaphore::recvString() {
+std::string Shmemaphore::recvString()
+{
+  if (owner)
+    waitForResponse();
+  else
+    waitForRequest();
+
   uint64_t dataSize;
   dataSize = *(uint64_t *)getHeader(sizeof(dataSize));
   const char *raw = (char *)getData(dataSize);
