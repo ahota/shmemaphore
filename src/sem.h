@@ -1,3 +1,5 @@
+#pragma once
+
 #include <fcntl.h>  // O_ flags
 #include <semaphore.h>
 #include <sys/stat.h>  // mode constants

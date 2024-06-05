@@ -1,3 +1,5 @@
+#pragma once
+
 #include <fcntl.h>  // O_ flags
 #include <sys/mman.h>  // shm_open, shm_unlink, mmap
 #include <sys/stat.h>  // mode constants
